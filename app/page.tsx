@@ -1,65 +1,163 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { useDropzone } from "react-dropzone";
+import {
+  DndContext,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+type FileItem = {
+  id: string;
+  file: File;
+  type: "pdf" | "image";
+};
+
+function SortableItem({ item, index }: { item: FileItem; index: number }) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="border rounded p-3 bg-white flex justify-between items-center cursor-move"
+    >
+      <div>
+        <div className="font-medium">
+          {index + 1}. {item.file.name}
+        </div>
+        <div className="text-sm text-gray-500">
+          {item.type.toUpperCase()}
+        </div>
+      </div>
+      <div className="text-gray-400">⇅</div>
+    </div>
+  );
+}
 
 export default function Home() {
+  const [files, setFiles] = useState<FileItem[]>([]);
+
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: {
+      "application/pdf": [".pdf"],
+      "image/*": [".png", ".jpg", ".jpeg"],
+    },
+    onDrop: (acceptedFiles) => {
+      const newFiles: FileItem[] = acceptedFiles.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        type: file.type === "application/pdf" ? "pdf" : "image",
+      }));
+      setFiles((prev) => [...prev, ...newFiles]);
+    },
+  });
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-xl mx-auto space-y-6">
+        <h1 className="text-2xl font-bold text-center">
+          PDF & Image Merger
+        </h1>
+
+        {/* Upload */}
+        <div
+          {...getRootProps()}
+          className="border-2 border-dashed rounded p-6 text-center bg-white cursor-pointer"
+        >
+          <input {...getInputProps()} />
+          <p className="text-gray-600">
+            Click or drag to upload PDFs & Images
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* File List */}
+        {files.length > 0 && (
+          <DndContext
+            collisionDetection={closestCenter}
+            onDragEnd={(event) => {
+              const { active, over } = event;
+              if (over && active.id !== over.id) {
+                setFiles((items) => {
+                  const oldIndex = items.findIndex(
+                    (i) => i.id === active.id
+                  );
+                  const newIndex = items.findIndex(
+                    (i) => i.id === over.id
+                  );
+                  return arrayMove(items, oldIndex, newIndex);
+                });
+              }
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <SortableContext
+              items={files.map((f) => f.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {files.map((item, index) => (
+                  <SortableItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+
+        {/* Merge Button */}
+        {files.length > 0 && (
+          <button
+          onClick={async () => {
+            const formData = new FormData();
+          
+            files.forEach((item) => {
+              formData.append("files", item.file);
+            });
+          
+            const res = await fetch("/api/merge", {
+              method: "POST",
+              body: formData,
+            });
+          
+            if (!res.ok) {
+              alert("Failed to merge files");
+              return;
+            }
+          
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+          
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "merged.pdf";
+            a.click();
+          
+            URL.revokeObjectURL(url);
+          }}
+            className="w-full bg-black text-white py-3 rounded"
           >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            Merge & Download PDF
+          </button>
+        )}
+      </div>
+    </main>
   );
 }
