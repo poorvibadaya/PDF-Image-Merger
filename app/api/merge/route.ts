@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { Buffer } from "buffer";
