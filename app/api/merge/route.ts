@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
+import { Buffer } from "buffer";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20 MB
@@ -71,16 +72,14 @@ export async function POST(req: Request) {
     }
 
     const pdfBytes = await mergedPdf.save();
-
-    return new NextResponse(
-        new Blob([pdfBytes], { type: "application/pdf" }),
-        {
-          headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": 'attachment; filename="merged.pdf"',
-          },
-        }
-      );
+    const buffer = Buffer.from(pdfBytes);
+    
+    return new NextResponse(buffer, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="merged.pdf"',
+      },
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
