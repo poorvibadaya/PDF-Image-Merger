@@ -14,6 +14,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20 MB
+
 type FileItem = {
   id: string;
   file: File;
@@ -58,12 +61,35 @@ export default function Home() {
       "application/pdf": [".pdf"],
       "image/*": [".png", ".jpg", ".jpeg"],
     },
-    onDrop: (acceptedFiles) => {
-      const newFiles: FileItem[] = acceptedFiles.map((file) => ({
+    onDrop: (acceptedFiles, rejectedFiles) => {
+      if (rejectedFiles.length > 0) {
+        alert("Some files were rejected. Only PDFs and images are allowed.");
+        return;
+      }
+    
+      const totalSize =
+        files.reduce((sum, f) => sum + f.file.size, 0) +
+        acceptedFiles.reduce((sum, f) => sum + f.size, 0);
+    
+      if (totalSize > MAX_TOTAL_SIZE) {
+        alert("Total file size exceeds 20 MB limit");
+        return;
+      }
+    
+      const validFiles = acceptedFiles.filter((file) => {
+        if (file.size > MAX_FILE_SIZE) {
+          alert(`${file.name} exceeds 5 MB limit`);
+          return false;
+        }
+        return true;
+      });
+    
+      const newFiles: FileItem[] = validFiles.map((file) => ({
         id: crypto.randomUUID(),
         file,
         type: file.type === "application/pdf" ? "pdf" : "image",
       }));
+    
       setFiles((prev) => [...prev, ...newFiles]);
     },
   });
@@ -138,7 +164,8 @@ export default function Home() {
             });
           
             if (!res.ok) {
-              alert("Failed to merge files");
+              const error = await res.json();
+              alert(error.error || "Failed to merge files");
               return;
             }
           

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20 MB
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -9,6 +12,26 @@ export async function POST(req: Request) {
     if (!files || files.length === 0) {
       return NextResponse.json(
         { error: "No files received" },
+        { status: 400 }
+      );
+    }
+
+    let totalSize = 0;
+
+    for (const file of files) {
+      totalSize += file.size;
+
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `${file.name} exceeds 5 MB limit` },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (totalSize > MAX_TOTAL_SIZE) {
+      return NextResponse.json(
+        { error: "Total file size exceeds 20 MB limit" },
         { status: 400 }
       );
     }
