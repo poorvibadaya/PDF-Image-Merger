@@ -72,12 +72,15 @@ export async function POST(req: Request) {
 
     const pdfBytes = await mergedPdf.save();
 
-    return new NextResponse(pdfBytes.buffer, {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": 'attachment; filename="merged.pdf"',
-        },
-      });
+    return new NextResponse(
+        new Blob([pdfBytes], { type: "application/pdf" }),
+        {
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": 'attachment; filename="merged.pdf"',
+          },
+        }
+      );
   } catch (error) {
     console.error(error);
     return NextResponse.json(
