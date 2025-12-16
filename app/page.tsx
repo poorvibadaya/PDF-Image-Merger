@@ -66,16 +66,16 @@ export default function Home() {
         alert("Some files were rejected. Only PDFs and images are allowed.");
         return;
       }
-    
+
       const totalSize =
         files.reduce((sum, f) => sum + f.file.size, 0) +
         acceptedFiles.reduce((sum, f) => sum + f.size, 0);
-    
+
       if (totalSize > MAX_TOTAL_SIZE) {
         alert("Total file size exceeds 20 MB limit");
         return;
       }
-    
+
       const validFiles = acceptedFiles.filter((file) => {
         if (file.size > MAX_FILE_SIZE) {
           alert(`${file.name} exceeds 5 MB limit`);
@@ -83,13 +83,13 @@ export default function Home() {
         }
         return true;
       });
-    
+
       const newFiles: FileItem[] = validFiles.map((file) => ({
         id: crypto.randomUUID(),
         file,
         type: file.type === "application/pdf" ? "pdf" : "image",
       }));
-    
+
       setFiles((prev) => [...prev, ...newFiles]);
     },
   });
@@ -151,34 +151,35 @@ export default function Home() {
         {/* Merge Button */}
         {files.length > 0 && (
           <button
-          onClick={async () => {
-            const formData = new FormData();
-          
-            files.forEach((item) => {
-              formData.append("files", item.file);
-            });
-          
-            const res = await fetch("/api/merge", {
-              method: "POST",
-              body: formData,
-            });
-          
-            if (!res.ok) {
-              const error = await res.json();
-              alert(error.error || "Failed to merge files");
-              return;
-            }
-          
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-          
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "merged.pdf";
-            a.click();
-          
-            URL.revokeObjectURL(url);
-          }}
+            type="button"
+            onClick={async () => {
+              const formData = new FormData();
+
+              files.forEach((item) => {
+                formData.append("files", item.file);
+              });
+
+              const res = await fetch("/api/merge", {
+                method: "POST",
+                body: formData,
+              });
+
+              if (!res.ok) {
+                const error = await res.json();
+                alert(error.error || "Failed to merge files");
+                return;
+              }
+
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "merged.pdf";
+              a.click();
+
+              URL.revokeObjectURL(url);
+            }}
             className="w-full bg-black text-white py-3 rounded"
           >
             Merge & Download PDF
